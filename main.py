@@ -6,7 +6,6 @@ import datetime as dt
 from typing import NamedTuple
 from bs4 import BeautifulSoup
 
-
 RGX_SEASON = re.compile(r"Fall|Summer|Spring|Winter")
 # Event: Date stuff
 RGX_EVENT_DATE = re.compile(r"^(?P<event>.+): (?P<date_full>.+)$")
@@ -82,23 +81,6 @@ class GoogleCalendarEvent(NamedTuple):
         return ",".join(GOOGLE_CALENDAR_EVENT_HEADER)
 
 
-def get_adjusted_date(
-    datetime: dt.datetime,
-    delta_years: int = 0,
-    delta_weeks: int = 0,
-    delta_days: int = 0,
-) -> dt.datetime:
-    """
-    Adjust date based on change in years, weeks, or days.
-    * Uses `datetime.isocalendar`
-    * Reference: https://stackoverflow.com/a/2600864
-    """
-    iso_year, week, day = datetime.isocalendar()
-    return dt.date.fromisocalendar(
-        iso_year + delta_years, week + delta_weeks, day + delta_days
-    )
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -109,27 +91,6 @@ def main():
     )
     ap.add_argument(
         "-o", "--output", default=sys.stdout, help="Google calendar schedule as CSV"
-    )
-    ap.add_argument(
-        "-y",
-        "--delta_years",
-        default=0,
-        type=int,
-        help="Add this number of years to the dates from the URL.",
-    )
-    ap.add_argument(
-        "-w",
-        "--delta_weeks",
-        default=0,
-        type=int,
-        help="Add this number of weeks to the dates from the URL.",
-    )
-    ap.add_argument(
-        "-d",
-        "--delta_days",
-        default=0,
-        type=int,
-        help="Add this number of days to the dates from the URL.",
     )
     args = ap.parse_args()
     with urllib.request.urlopen(args.url) as fp:
@@ -143,8 +104,8 @@ def main():
         mtch_year = re.search(r"202\d", tag.string)
         if not mtch_year:
             continue
-        year = int(mtch_year.group()) + args.delta_years
-        print(f"On {tag.string}. Adjusted year: {year}", file=sys.stderr)
+        year = int(mtch_year.group())
+        print(f"* On {tag.string}.", file=sys.stderr)
 
         # Is contained in a div
         for child_tag in tag.parent.contents:
@@ -169,24 +130,9 @@ def main():
             date = mtch_grps["date_full"]
             mtch_date_elems: list[re.Match] = RGX_LONG_DATE.findall(date)
             if mtch_date_elems:
-                # Adjust date based on ISO date
-                # https://en.wikipedia.org/wiki/ISO_week_date
-                # https://stackoverflow.com/a/2600864
                 start_date = dt.datetime.strptime(mtch_date_elems[0], STRPTIME_FMT)
-                start_date = get_adjusted_date(
-                    start_date,
-                    delta_years=args.delta_years,
-                    delta_weeks=args.delta_weeks,
-                    delta_days=args.delta_days,
-                )
                 try:
                     end_date = dt.datetime.strptime(mtch_date_elems[1], STRPTIME_FMT)
-                    end_date = get_adjusted_date(
-                        end_date,
-                        delta_years=args.delta_years,
-                        delta_weeks=args.delta_weeks,
-                        delta_days=args.delta_days,
-                    )
                 except IndexError:
                     end_date = start_date
 

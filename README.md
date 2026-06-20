@@ -15,15 +15,5 @@ Get events from https://bioscience.utah.edu/current_students/first-year.php.
 python main.py > uou_biosci_calendar.csv
 ```
 
-Add 1 year to above link.
-```bash
-python main.py -y 1 > uou_biosci_calendar_plusoneyear.csv
-```
-
-Add 1 year and 1 week (**For 2026**) to above link.
-```bash
-python main.py -y 1 -w 1 > uou_biosci_calendar_2026.csv
-```
-
 Then load these into your Google Calendar:
 * Settings menu > Settings > Import & export > Import > Select file from your computer > Import
