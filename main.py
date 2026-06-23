@@ -4,7 +4,7 @@ import argparse
 import urllib.request
 import datetime as dt
 from typing import NamedTuple
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 RGX_SEASON = re.compile(r"Fall|Summer|Spring|Winter")
 # Event: Date stuff
@@ -74,7 +74,8 @@ class GoogleCalendarEvent(NamedTuple):
             fields.append(field_str)
         return ",".join(fields)
 
-    def header():
+    @classmethod
+    def header(cls):
         """
         Print Google calendar event header as a CSV line.
         """
@@ -101,16 +102,22 @@ def main():
     print(GoogleCalendarEvent.header())
 
     for tag in html.find_all("h3", string=RGX_SEASON):
-        mtch_year = re.search(r"202\d", tag.string)
+        mtch_year = (
+            re.search(pattern=r"202\d", string=tag.string) if tag.string else None
+        )
         if not mtch_year:
             continue
         year = int(mtch_year.group())
         print(f"* On {tag.string}.", file=sys.stderr)
 
+        if not tag.parent:
+            continue
+
         # Is contained in a div
         for child_tag in tag.parent.contents:
-            if child_tag.name == "h3":
+            if getattr(child_tag, "name") == "h3":
                 continue
+
             child_tag_str = child_tag.get_text()
             if not child_tag_str:
                 continue
@@ -128,7 +135,7 @@ def main():
                 event = f"{tag.string} - {event}"
 
             date = mtch_grps["date_full"]
-            mtch_date_elems: list[re.Match] = RGX_LONG_DATE.findall(date)
+            mtch_date_elems: list[str] = RGX_LONG_DATE.findall(date)
             if mtch_date_elems:
                 start_date = dt.datetime.strptime(mtch_date_elems[0], STRPTIME_FMT)
                 try:
